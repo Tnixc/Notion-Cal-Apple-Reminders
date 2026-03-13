@@ -1,4 +1,4 @@
-import { copyFileSync } from "fs";
+import { copyFileSync, mkdirSync } from "fs";
 import { join } from "path";
 
 const root = join(import.meta.dirname, "..");
@@ -9,6 +9,7 @@ const entrypoints = [
   join(srcDir, "background/service-worker.ts"),
   join(srcDir, "content/index.ts"),
   join(srcDir, "content/interceptor.ts"),
+  join(srcDir, "options/options.ts"),
 ];
 
 const result = await Bun.build({
@@ -48,5 +49,7 @@ if (!result.success) {
 }
 
 copyFileSync(join(srcDir, "manifest.json"), join(outDir, "manifest.json"));
+mkdirSync(join(outDir, "options"), { recursive: true });
+copyFileSync(join(srcDir, "options/index.html"), join(outDir, "options/index.html"));
 
 console.log(`Built ${result.outputs.length} files to dist/`);

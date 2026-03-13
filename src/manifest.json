@@ -3,7 +3,11 @@
   "name": "Notion Cal → Apple Reminders",
   "version": "0.1.0",
   "description": "Intercepts Notion Calendar events and syncs to Apple Reminders",
-  "permissions": ["webRequest", "nativeMessaging"],
+  "permissions": ["webRequest", "nativeMessaging", "storage"],
+  "options_ui": {
+    "page": "options/index.html",
+    "open_in_tab": false
+  },
   "host_permissions": ["https://calendar.notion.so/*", "https://calendar-api.notion.so/*"],
   "background": {
     "service_worker": "background/service-worker.js",

@@ -22,7 +22,9 @@ function isNotionAccount(result: CalendarListResult): boolean {
   return result.calendars.length > 0 && result.calendars.every((c) => c.provider === "notion");
 }
 
-function makeInjectedCalendar(accountId: string, listName: string): NotionCalendar {
+const DEFAULT_COLOR = "#9fc6e7";
+
+function makeInjectedCalendar(accountId: string, listName: string, color: string): NotionCalendar {
   const calId = calendarIdForList(listName);
   const collectionId = `injected-collection-${listName.toLowerCase().replace(/\s+/g, "-")}`;
 
@@ -40,7 +42,7 @@ function makeInjectedCalendar(accountId: string, listName: string): NotionCalend
     notionViewType: "table",
     notionUrl: "",
     notionParentId: "",
-    backgroundColor: "#9fc6e7",
+    backgroundColor: color,
     foregroundColor: "#000000",
     notionCollection: {
       id: collectionId,
@@ -137,8 +139,8 @@ route("/v2/getCalendarLists", async (url, request) => {
 
   const data: CalendarListResult[] = await response.clone().json();
 
-  // Fetch reminders to discover which lists exist
-  const reminders = await fetchReminders();
+  // Fetch reminders to discover which lists exist, along with color config
+  const { reminders, listColors } = await fetchReminders();
   const listNames = [...new Set(reminders.map((r) => r.list))];
   console.log(`[notion-cal] Discovered reminder lists: ${listNames.join(", ")}`);
 
@@ -146,7 +148,8 @@ route("/v2/getCalendarLists", async (url, request) => {
     if (!isNotionAccount(result)) continue;
 
     for (const listName of listNames) {
-      const injected = makeInjectedCalendar(result.accountId, listName);
+      const color = listColors[listName] ?? DEFAULT_COLOR;
+      const injected = makeInjectedCalendar(result.accountId, listName, color);
       result.calendars.push(injected);
       console.log(`[notion-cal] Injected calendar: "${injected.summary}" (${injected.id})`);
     }

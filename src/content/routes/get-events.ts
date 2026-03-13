@@ -116,7 +116,7 @@ route("/v2/getEvents", async (url, request) => {
   }
 
   if (injectedQueries.size > 0) {
-    const reminders = await fetchReminders();
+    const { reminders } = await fetchReminders();
     console.log(`[notion-cal] Fetched ${reminders.length} reminders`);
 
     // Group reminders by list

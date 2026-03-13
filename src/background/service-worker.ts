@@ -1,17 +1,19 @@
-const API_BASE = "https://calendar-api.notion.so/";
-
-chrome.webRequest.onCompleted.addListener(
-  (details) => {
-    console.log("[notion-cal] Request completed:", details.url);
-  },
-  { urls: [`${API_BASE}*`] },
-);
+import { NATIVE_HOST_NAME } from "@/constants";
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message.type === "NOTION_EVENTS_INTERCEPTED") {
-    console.log("[notion-cal] Intercepted events:", message.payload);
-    // TODO: process events and sync to Apple Reminders
+  if (message.type === "GET_REMINDERS") {
+    chrome.runtime.sendNativeMessage(
+      NATIVE_HOST_NAME,
+      { action: "getReminders", daysAhead: message.daysAhead ?? 7 },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          console.error("[notion-cal] Native host error:", chrome.runtime.lastError.message);
+          sendResponse({ success: false, error: chrome.runtime.lastError.message });
+          return;
+        }
+        sendResponse(response);
+      },
+    );
+    return true; // keep channel open for async response
   }
-  sendResponse({ ok: true });
-  return true;
 });

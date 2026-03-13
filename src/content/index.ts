@@ -5,10 +5,10 @@ script.type = "module";
 (document.head || document.documentElement).appendChild(script);
 script.onload = () => script.remove();
 
-// Listen for intercepted events from the page context
-window.addEventListener("notion-cal-intercepted", ((event: CustomEvent) => {
-  chrome.runtime.sendMessage({
-    type: "NOTION_EVENTS_INTERCEPTED",
-    payload: event.detail,
+// Bridge: page context requests reminders via CustomEvent, we fetch from background
+window.addEventListener("notion-cal-get-reminders", ((event: CustomEvent) => {
+  const { daysAhead } = event.detail ?? {};
+  chrome.runtime.sendMessage({ type: "GET_REMINDERS", daysAhead }, (response) => {
+    window.dispatchEvent(new CustomEvent("notion-cal-reminders-response", { detail: response }));
   });
 }) as EventListener);

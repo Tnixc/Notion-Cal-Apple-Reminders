@@ -1,6 +1,8 @@
 import { route, originalFetch } from "@/content/router";
 import type { CalendarQueryResult } from "@/types/notion-calendar";
-import { INJECTED_CALENDAR_ID } from "@/constants";
+import type { AppleReminder } from "@/types/apple-reminders";
+import { INJECTED_CALENDAR_ID, STATUS_IDS, PRIORITY_ID } from "@/constants";
+import { fetchReminders } from "@/content/reminders";
 
 interface GetEventsQuery {
   provider: string;
@@ -19,12 +21,89 @@ function hasNotionQuery(body: unknown): boolean {
   return Array.isArray(b.queries) && b.queries.some((q) => q.provider === "notion");
 }
 
+function toNotionEvent(reminder: AppleReminder, accountId: string) {
+  const now = new Date().toISOString();
+  const dueDate = reminder.dueDate ? new Date(reminder.dueDate) : new Date();
+  const isoDate = dueDate.toISOString();
+  const tzOffset = dueDate.getTimezoneOffset();
+  const sign = tzOffset <= 0 ? "+" : "-";
+  const absH = String(Math.floor(Math.abs(tzOffset) / 60)).padStart(2, "0");
+  const absM = String(Math.abs(tzOffset) % 60).padStart(2, "0");
+  const localISO = new Date(dueDate.getTime() - tzOffset * 60000)
+    .toISOString()
+    .replace("Z", `${sign}${absH}:${absM}`);
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  return {
+    provider: "notion" as const,
+    kind: "calendar#event" as const,
+    organizer: { self: true },
+    sequence: 1,
+    id: `apple-rmdr-${reminder.externalId}`,
+    accountId,
+    calendarId: INJECTED_CALENDAR_ID,
+    summary: reminder.title,
+    start: { dateTime: localISO, timeZone: tz },
+    end: { dateTime: localISO, timeZone: tz },
+    created: now,
+    updated: now,
+    notionUrl: "",
+    notionTitleHasRichText: false,
+    notionPage: {
+      properties: {
+        Date: {
+          id: "I%5Bbb",
+          type: "date",
+          date: { start: isoDate, end: null, time_zone: null },
+        },
+        Status: {
+          id: "Mx%60b",
+          type: "status",
+          status: {
+            id: reminder.isCompleted ? STATUS_IDS.complete : STATUS_IDS.incomplete,
+            name: reminder.isCompleted ? "Complete" : "Incomplete",
+            color: "default",
+          },
+        },
+        Priority: {
+          id: "tbMz",
+          type: "select",
+          select: {
+            id: PRIORITY_ID,
+            name: String(reminder.priority),
+            color: "green",
+          },
+        },
+        Name: {
+          id: "title",
+          type: "title",
+          title: [
+            {
+              type: "text",
+              text: { content: reminder.title, link: null },
+              annotations: {
+                bold: false,
+                italic: false,
+                strikethrough: false,
+                underline: false,
+                code: false,
+                color: "default",
+              },
+              plain_text: reminder.title,
+              href: null,
+            },
+          ],
+        },
+      },
+    },
+  };
+}
+
 route("/v2/getEvents", async (url, request) => {
   if (!hasNotionQuery(request.body)) return null;
 
   const body = request.body as GetEventsBody;
 
-  // Forward the full request to Notion (it ignores unknown calendarIds)
   const response = await originalFetch(url.href, {
     method: request.method,
     headers: request.headers,
@@ -33,161 +112,15 @@ route("/v2/getEvents", async (url, request) => {
 
   const data: CalendarQueryResult[] = await response.json();
 
-  // If the injected calendar was queried, append mock events
   const injectedQuery = body.queries.find((q) => q.calendarId === INJECTED_CALENDAR_ID);
   if (injectedQuery) {
-    console.log(`[notion-cal] Appending mock events for ${INJECTED_CALENDAR_ID}`);
+    const reminders = await fetchReminders();
+    console.log(`[notion-cal] Fetched ${reminders.length} reminders`);
+
     data.push({
       accountId: injectedQuery.accountId,
       calendarId: INJECTED_CALENDAR_ID,
-      events: [
-        {
-          provider: "notion",
-          kind: "calendar#event",
-          organizer: { self: true },
-          sequence: 1,
-          id: "injected-mock-event-0002",
-          accountId: injectedQuery.accountId,
-          calendarId: INJECTED_CALENDAR_ID,
-          summary: "Mock Apple Reminder 2",
-          start: {
-            dateTime: "2026-03-14T10:00:00-03:00",
-            timeZone: "America/Toronto",
-          },
-          end: {
-            dateTime: "2026-03-14T10:00:00-03:00",
-            timeZone: "America/Toronto",
-          },
-          created: "2026-03-13T00:00:00.000Z",
-          updated: "2026-03-13T00:00:00.000Z",
-          notionUrl: "",
-          notionTitleHasRichText: false,
-          notionPage: {
-            properties: {
-              Date: {
-                id: "I%5Bbb",
-                type: "date",
-                date: {
-                  start: "2026-03-14T14:00:00.000+00:00",
-                  end: null,
-                  time_zone: null,
-                },
-              },
-              Status: {
-                id: "Mx%60b",
-                type: "status",
-                status: {
-                  id: "f90b1d98-fb26-4d70-8f8e-446a7a79652c",
-                  name: "Complete",
-                  color: "default",
-                },
-              },
-              Priority: {
-                id: "tbMz",
-                type: "select",
-                select: {
-                  id: "9f9f21b9-9f4a-472d-9884-aebfd82a0c30",
-                  name: "0",
-                  color: "green",
-                },
-              },
-              Name: {
-                id: "title",
-                type: "title",
-                title: [
-                  {
-                    type: "text",
-                    text: { content: "Mock Apple Reminder2", link: null },
-                    annotations: {
-                      bold: false,
-                      italic: false,
-                      strikethrough: false,
-                      underline: false,
-                      code: false,
-                      color: "default",
-                    },
-                    plain_text: "Mock Apple Reminder2",
-                    href: null,
-                  },
-                ],
-              },
-            },
-          },
-        },
-        {
-          provider: "notion",
-          kind: "calendar#event",
-          organizer: { self: true },
-          sequence: 1,
-          id: "injected-mock-event-0001",
-          accountId: injectedQuery.accountId,
-          calendarId: INJECTED_CALENDAR_ID,
-          summary: "Mock Apple Reminder",
-          start: {
-            dateTime: "2026-03-14T10:00:00-04:00",
-            timeZone: "America/Toronto",
-          },
-          end: {
-            dateTime: "2026-03-14T10:00:00-04:00",
-            timeZone: "America/Toronto",
-          },
-          created: "2026-03-13T00:00:00.000Z",
-          updated: "2026-03-13T00:00:00.000Z",
-          notionUrl: "",
-          notionTitleHasRichText: false,
-          notionPage: {
-            properties: {
-              Date: {
-                id: "I%5Bbb",
-                type: "date",
-                date: {
-                  start: "2026-03-14T14:00:00.000+00:00",
-                  end: null,
-                  time_zone: null,
-                },
-              },
-              Status: {
-                id: "Mx%60b",
-                type: "status",
-                status: {
-                  id: "b529b488-f478-4118-8fc4-4084491a9731",
-                  name: "Incomplete",
-                  color: "default",
-                },
-              },
-              Priority: {
-                id: "tbMz",
-                type: "select",
-                select: {
-                  id: "9f9f21b9-9f4a-472d-9884-aebfd82a0c30",
-                  name: "0",
-                  color: "green",
-                },
-              },
-              Name: {
-                id: "title",
-                type: "title",
-                title: [
-                  {
-                    type: "text",
-                    text: { content: "Mock Apple Reminder", link: null },
-                    annotations: {
-                      bold: false,
-                      italic: false,
-                      strikethrough: false,
-                      underline: false,
-                      code: false,
-                      color: "default",
-                    },
-                    plain_text: "Mock Apple Reminder",
-                    href: null,
-                  },
-                ],
-              },
-            },
-          },
-        },
-      ],
+      events: reminders.map((r) => toNotionEvent(r, injectedQuery.accountId)),
     });
   }
 

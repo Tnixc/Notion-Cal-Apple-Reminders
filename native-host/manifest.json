@@ -1,0 +1,7 @@
+{
+  "name": "com.notion_cal.apple_reminders",
+  "description": "Native messaging host for Apple Reminders integration",
+  "path": "/PLACEHOLDER",
+  "type": "stdio",
+  "allowed_origins": ["chrome-extension://PLACEHOLDER/"]
+}

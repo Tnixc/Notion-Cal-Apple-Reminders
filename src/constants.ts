@@ -1,8 +1,3 @@
-export const REMINDERS_CONFIG = {
-  daysAhead: 7,
-  includeCompleted: true,
-} as const;
-
 export const NATIVE_HOST_NAME = "com.notion_cal.apple_reminders";
 
 export const STATUS_IDS = {

@@ -1,8 +1,7 @@
-import { getRemindersWithinDays, type AppleReminder } from "./reminders";
+import { getReminders, type AppleReminder } from "./reminders";
 
 interface NativeRequest {
   action: string;
-  daysAhead?: number;
 }
 
 interface NativeResponse {
@@ -86,13 +85,15 @@ async function main() {
   try {
     switch (message.action) {
       case "getReminders": {
-        const days = message.daysAhead ?? 7;
-        const reminders = getRemindersWithinDays(days);
+        const reminders = getReminders();
         sendMessage({ success: true, reminders });
         break;
       }
       default:
-        sendMessage({ success: false, error: `Unknown action: ${message.action}` });
+        sendMessage({
+          success: false,
+          error: `Unknown action: ${message.action}`,
+        });
     }
   } catch (e: any) {
     sendMessage({ success: false, error: e.message ?? String(e) });

@@ -12,7 +12,7 @@ export interface AppleReminder {
   notes?: string;
 }
 
-export function getRemindersWithinDays(days: number): AppleReminder[] {
+export function getReminders(): AppleReminder[] {
   let raw: string;
   try {
     raw = execSync(`${REMINDERS} show-all --include-completed -f json`, {
@@ -23,12 +23,5 @@ export function getRemindersWithinDays(days: number): AppleReminder[] {
   }
 
   const all: AppleReminder[] = JSON.parse(raw);
-  const now = Date.now();
-  const cutoff = now + days * 24 * 60 * 60 * 1000;
-  return all.filter((r) => {
-    if (!r.dueDate) return false;
-    const due = new Date(r.dueDate).getTime();
-    if (r.isCompleted) return due >= now && due <= cutoff;
-    return due <= cutoff;
-  });
+  return all;
 }

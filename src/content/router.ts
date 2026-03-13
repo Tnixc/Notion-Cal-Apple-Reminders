@@ -4,10 +4,7 @@ export interface RouteRequest {
   headers: Headers;
 }
 
-type RouteHandler = (
-  url: URL,
-  request: RouteRequest,
-) => Promise<Response | null>;
+type RouteHandler = (url: URL, request: RouteRequest) => Promise<Response | null>;
 
 interface Route {
   path: string;
@@ -53,10 +50,7 @@ async function parseBody(raw: BodyInit | null | undefined): Promise<unknown> {
 
 let _originalFetch: typeof fetch;
 
-export function originalFetch(
-  input: RequestInfo | URL,
-  init?: RequestInit,
-): Promise<Response> {
+export function originalFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   return _originalFetch.call(window, input, init);
 }
 
@@ -64,12 +58,7 @@ export function installRouter() {
   _originalFetch = window.fetch;
 
   window.fetch = async function (input, init) {
-    const raw =
-      typeof input === "string"
-        ? input
-        : input instanceof URL
-          ? input.href
-          : input.url;
+    const raw = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
     const url = new URL(raw);
     const matched = matchRoute(url);
 
@@ -85,10 +74,7 @@ export function installRouter() {
         console.log(`[notion-cal] HIJACKED ${matched.path}`, request.body);
         return response;
       }
-      console.log(
-        `[notion-cal] BYPASSED ${matched.path} (condition not met)`,
-        request.body,
-      );
+      console.log(`[notion-cal] BYPASSED ${matched.path} (condition not met)`, request.body);
     }
 
     return _originalFetch.call(this, input, init);

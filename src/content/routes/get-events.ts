@@ -4,6 +4,7 @@ import { INJECTED_CALENDAR_ID } from "@/constants";
 
 interface GetEventsQuery {
   provider: string;
+  accountId: string;
   calendarId?: string;
   [key: string]: unknown;
 }
@@ -15,9 +16,7 @@ interface GetEventsBody {
 function hasNotionQuery(body: unknown): boolean {
   if (!body || typeof body !== "object") return false;
   const b = body as GetEventsBody;
-  return (
-    Array.isArray(b.queries) && b.queries.some((q) => q.provider === "notion")
-  );
+  return Array.isArray(b.queries) && b.queries.some((q) => q.provider === "notion");
 }
 
 function splitQueries(body: GetEventsBody): {
@@ -55,9 +54,7 @@ route("/v2/getEvents", async (url, request) => {
 
   // Handle injected calendar queries
   for (const query of injected) {
-    console.log(
-      `[notion-cal] Serving injected calendar events for ${INJECTED_CALENDAR_ID}`,
-    );
+    console.log(`[notion-cal] Serving injected calendar events for ${INJECTED_CALENDAR_ID}`);
     realResults.push({
       accountId: query.accountId,
       calendarId: INJECTED_CALENDAR_ID,

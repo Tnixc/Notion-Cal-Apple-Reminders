@@ -1,8 +1,5 @@
 import { route, originalFetch } from "@/content/router";
-import type {
-  CalendarListResult,
-  NotionCalendar,
-} from "@/types/calendar-list";
+import type { CalendarListResult, NotionCalendar } from "@/types/calendar-list";
 import { setNotionCalendar } from "@/content/store";
 import { INJECTED_CALENDAR_ID } from "@/constants";
 
@@ -18,16 +15,11 @@ interface CalendarListBody {
 function hasNotionQuery(body: unknown): boolean {
   if (!body || typeof body !== "object") return false;
   const b = body as CalendarListBody;
-  return (
-    Array.isArray(b.queries) && b.queries.some((q) => q.provider === "notion")
-  );
+  return Array.isArray(b.queries) && b.queries.some((q) => q.provider === "notion");
 }
 
 function isNotionAccount(result: CalendarListResult): boolean {
-  return (
-    result.calendars.length > 0 &&
-    result.calendars.every((c) => c.provider === "notion")
-  );
+  return result.calendars.length > 0 && result.calendars.every((c) => c.provider === "notion");
 }
 
 function makeInjectedCalendar(accountId: string): NotionCalendar {
@@ -169,9 +161,7 @@ route("/v2/getCalendarLists", async (url, request) => {
 
     const injected = makeInjectedCalendar(result.accountId);
     result.calendars.push(injected);
-    console.log(
-      `[notion-cal] Injected calendar: "${injected.summary}" (${injected.id})`,
-    );
+    console.log(`[notion-cal] Injected calendar: "${injected.summary}" (${injected.id})`);
   }
 
   return new Response(JSON.stringify(data), {

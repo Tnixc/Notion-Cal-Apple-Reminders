@@ -13,4 +13,5 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     // TODO: process events and sync to Apple Reminders
   }
   sendResponse({ ok: true });
+  return true;
 });

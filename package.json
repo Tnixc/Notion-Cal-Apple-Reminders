@@ -10,8 +10,9 @@
     "check": "bun run lint && tsc --noEmit"
   },
   "devDependencies": {
-    "typescript": "^5.7.0",
+    "chrome-types": "^0.1.327",
+    "oxfmt": "^0.40.0",
     "oxlint": "latest",
-    "chrome-types": "^0.1.327"
+    "typescript": "^5.7.0"
   }
 }

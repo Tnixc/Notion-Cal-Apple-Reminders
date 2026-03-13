@@ -4,10 +4,7 @@
   "version": "0.1.0",
   "description": "Intercepts Notion Calendar events and syncs to Apple Reminders",
   "permissions": ["webRequest"],
-  "host_permissions": [
-    "https://calendar.notion.so/*",
-    "https://calendar-api.notion.so/*"
-  ],
+  "host_permissions": ["https://calendar.notion.so/*", "https://calendar-api.notion.so/*"],
   "background": {
     "service_worker": "background/service-worker.js",
     "type": "module"

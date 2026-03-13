@@ -1,7 +1,4 @@
-export const INJECTED_CALENDAR_ID = "CUSTOMXX-APPL-REMD-0001-AssessmentsXX";
-
 export const REMINDERS_CONFIG = {
-  lists: ["Reminders"],
   daysAhead: 7,
   includeCompleted: true,
 } as const;
@@ -14,3 +11,13 @@ export const STATUS_IDS = {
 } as const;
 
 export const PRIORITY_ID = "9f9f21b9-9f4a-472d-9884-aebfd82a0c30";
+
+/** Deterministic calendar ID from a reminder list name. */
+export function calendarIdForList(listName: string): string {
+  let hash = 0;
+  for (const ch of listName) {
+    hash = ((hash << 5) - hash + ch.charCodeAt(0)) | 0;
+  }
+  const hex = (hash >>> 0).toString(16).padStart(8, "0");
+  return `APPLRMDR-${hex.slice(0, 4)}-${hex.slice(4, 8)}-0000-000000000000`;
+}

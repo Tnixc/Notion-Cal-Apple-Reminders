@@ -25,7 +25,6 @@ export function getRemindersWithinDays(days: number): AppleReminder[] {
   const all: AppleReminder[] = JSON.parse(raw);
   const now = Date.now();
   const cutoff = now + days * 24 * 60 * 60 * 1000;
-
   return all.filter((r) => {
     if (!r.dueDate) return false;
     const due = new Date(r.dueDate).getTime();

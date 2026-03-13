@@ -1,6 +1,7 @@
 import { route, originalFetch } from "@/content/router";
 import type { CalendarListResult, NotionCalendar } from "@/types/calendar-list";
-import { INJECTED_CALENDAR_ID } from "@/constants";
+import { calendarIdForList, STATUS_IDS, PRIORITY_ID } from "@/constants";
+import { fetchReminders } from "@/content/reminders";
 
 interface CalendarListQuery {
   provider: string;
@@ -21,17 +22,20 @@ function isNotionAccount(result: CalendarListResult): boolean {
   return result.calendars.length > 0 && result.calendars.every((c) => c.provider === "notion");
 }
 
-function makeInjectedCalendar(accountId: string): NotionCalendar {
+function makeInjectedCalendar(accountId: string, listName: string): NotionCalendar {
+  const calId = calendarIdForList(listName);
+  const collectionId = `injected-collection-${listName.toLowerCase().replace(/\s+/g, "-")}`;
+
   return {
     provider: "notion",
     kind: "calendar#timeCollectionView",
-    id: INJECTED_CALENDAR_ID,
+    id: calId,
     accountId,
     accessRole: "writer",
     defaultReminders: [],
     etag: "",
     selected: true,
-    summary: "Apple Reminders (Injected)",
+    summary: `${listName} (Apple Reminders)`,
     subtitle: "Table",
     notionViewType: "table",
     notionUrl: "",
@@ -39,7 +43,7 @@ function makeInjectedCalendar(accountId: string): NotionCalendar {
     backgroundColor: "#9fc6e7",
     foregroundColor: "#000000",
     notionCollection: {
-      id: "injected-collection",
+      id: collectionId,
       properties: {
         Date: {
           id: "I%5Bbb",
@@ -56,13 +60,13 @@ function makeInjectedCalendar(accountId: string): NotionCalendar {
           status: {
             options: [
               {
-                id: "b529b488-f478-4118-8fc4-4084491a9731",
+                id: STATUS_IDS.incomplete,
                 name: "Incomplete",
                 color: "default",
                 description: null,
               },
               {
-                id: "f90b1d98-fb26-4d70-8f8e-446a7a79652c",
+                id: STATUS_IDS.complete,
                 name: "Complete",
                 color: "green",
                 description: null,
@@ -73,7 +77,7 @@ function makeInjectedCalendar(accountId: string): NotionCalendar {
                 id: "99446d2e-9079-4d32-92f6-c61c1137ced1",
                 name: "To-do",
                 color: "gray",
-                option_ids: ["b529b488-f478-4118-8fc4-4084491a9731"],
+                option_ids: [STATUS_IDS.incomplete],
               },
               {
                 id: "ee3f9055-9ec3-4eee-a757-a76812c55a49",
@@ -85,7 +89,7 @@ function makeInjectedCalendar(accountId: string): NotionCalendar {
                 id: "5260fb78-fb3d-4b17-9c04-c9efc208238b",
                 name: "Complete",
                 color: "green",
-                option_ids: ["f90b1d98-fb26-4d70-8f8e-446a7a79652c"],
+                option_ids: [STATUS_IDS.complete],
               },
             ],
           },
@@ -98,7 +102,7 @@ function makeInjectedCalendar(accountId: string): NotionCalendar {
           select: {
             options: [
               {
-                id: "9f9f21b9-9f4a-472d-9884-aebfd82a0c30",
+                id: PRIORITY_ID,
                 name: "0",
                 color: "green",
                 description: null,
@@ -128,8 +132,8 @@ function makeInjectedCalendar(accountId: string): NotionCalendar {
       timePropertyId: "I%5Bbb",
       availableViews: [
         {
-          id: INJECTED_CALENDAR_ID,
-          collectionId: "injected-collection",
+          id: calId,
+          collectionId,
           name: "Table",
           type: "table",
         },
@@ -149,12 +153,19 @@ route("/v2/getCalendarLists", async (url, request) => {
 
   const data: CalendarListResult[] = await response.clone().json();
 
+  // Fetch reminders to discover which lists exist
+  const reminders = await fetchReminders();
+  const listNames = [...new Set(reminders.map((r) => r.list))];
+  console.log(`[notion-cal] Discovered reminder lists: ${listNames.join(", ")}`);
+
   for (const result of data) {
     if (!isNotionAccount(result)) continue;
 
-    const injected = makeInjectedCalendar(result.accountId);
-    result.calendars.push(injected);
-    console.log(`[notion-cal] Injected calendar: "${injected.summary}" (${injected.id})`);
+    for (const listName of listNames) {
+      const injected = makeInjectedCalendar(result.accountId, listName);
+      result.calendars.push(injected);
+      console.log(`[notion-cal] Injected calendar: "${injected.summary}" (${injected.id})`);
+    }
   }
 
   return new Response(JSON.stringify(data), {

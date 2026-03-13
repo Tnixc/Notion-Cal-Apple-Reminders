@@ -1,7 +1,7 @@
 import { route, originalFetch } from "@/content/router";
-import type { CalendarQueryResult } from "@/types/notion-calendar";
+import type { CalendarQueryResult, NotionEvent } from "@/types/notion-calendar";
 import type { AppleReminder } from "@/types/apple-reminders";
-import { INJECTED_CALENDAR_ID, STATUS_IDS, PRIORITY_ID } from "@/constants";
+import { calendarIdForList, STATUS_IDS, PRIORITY_ID } from "@/constants";
 import { fetchReminders } from "@/content/reminders";
 
 interface GetEventsQuery {
@@ -21,7 +21,11 @@ function hasNotionQuery(body: unknown): boolean {
   return Array.isArray(b.queries) && b.queries.some((q) => q.provider === "notion");
 }
 
-function toNotionEvent(reminder: AppleReminder, accountId: string) {
+function toNotionEvent(
+  reminder: AppleReminder,
+  accountId: string,
+  calendarId: string,
+): NotionEvent {
   const now = new Date().toISOString();
   const dueDate = reminder.dueDate ? new Date(reminder.dueDate) : new Date();
   const isoDate = dueDate.toISOString();
@@ -35,13 +39,13 @@ function toNotionEvent(reminder: AppleReminder, accountId: string) {
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   return {
-    provider: "notion" as const,
-    kind: "calendar#event" as const,
+    provider: "notion",
+    kind: "calendar#event",
     organizer: { self: true },
     sequence: 1,
     id: `apple-rmdr-${reminder.externalId}`,
     accountId,
-    calendarId: INJECTED_CALENDAR_ID,
+    calendarId,
     summary: reminder.title,
     start: { dateTime: localISO, timeZone: tz },
     end: { dateTime: localISO, timeZone: tz },
@@ -53,12 +57,12 @@ function toNotionEvent(reminder: AppleReminder, accountId: string) {
       properties: {
         Date: {
           id: "I%5Bbb",
-          type: "date",
+          type: "date" as const,
           date: { start: isoDate, end: null, time_zone: null },
         },
         Status: {
           id: "Mx%60b",
-          type: "status",
+          type: "status" as const,
           status: {
             id: reminder.isCompleted ? STATUS_IDS.complete : STATUS_IDS.incomplete,
             name: reminder.isCompleted ? "Complete" : "Incomplete",
@@ -67,7 +71,7 @@ function toNotionEvent(reminder: AppleReminder, accountId: string) {
         },
         Priority: {
           id: "tbMz",
-          type: "select",
+          type: "select" as const,
           select: {
             id: PRIORITY_ID,
             name: String(reminder.priority),
@@ -76,7 +80,7 @@ function toNotionEvent(reminder: AppleReminder, accountId: string) {
         },
         Name: {
           id: "title",
-          type: "title",
+          type: "title" as const,
           title: [
             {
               type: "text",
@@ -112,16 +116,38 @@ route("/v2/getEvents", async (url, request) => {
 
   const data: CalendarQueryResult[] = await response.json();
 
-  const injectedQuery = body.queries.find((q) => q.calendarId === INJECTED_CALENDAR_ID);
-  if (injectedQuery) {
+  // Find queries that target our injected calendars (APPLRMDR- prefix)
+  const injectedQueries = new Map<string, GetEventsQuery>();
+  for (const q of body.queries) {
+    if (q.calendarId?.startsWith("APPLRMDR-")) {
+      injectedQueries.set(q.calendarId, q);
+    }
+  }
+
+  if (injectedQueries.size > 0) {
     const reminders = await fetchReminders();
     console.log(`[notion-cal] Fetched ${reminders.length} reminders`);
 
-    data.push({
-      accountId: injectedQuery.accountId,
-      calendarId: INJECTED_CALENDAR_ID,
-      events: reminders.map((r) => toNotionEvent(r, injectedQuery.accountId)),
-    });
+    // Group reminders by list
+    const byList = new Map<string, AppleReminder[]>();
+    for (const r of reminders) {
+      const list = byList.get(r.list);
+      if (list) list.push(r);
+      else byList.set(r.list, [r]);
+    }
+
+    // Emit a CalendarQueryResult for each list whose calendar was queried
+    for (const [listName, listReminders] of byList) {
+      const calId = calendarIdForList(listName);
+      const query = injectedQueries.get(calId);
+      if (!query) continue;
+
+      data.push({
+        accountId: query.accountId,
+        calendarId: calId,
+        events: listReminders.map((r) => toNotionEvent(r, query.accountId, calId)),
+      });
+    }
   }
 
   return new Response(JSON.stringify(data), {

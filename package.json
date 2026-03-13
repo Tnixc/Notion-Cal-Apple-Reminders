@@ -1,0 +1,17 @@
+{
+  "name": "notion-cal-apple-reminders",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "bun run scripts/build.ts",
+    "dev": "bun run scripts/build.ts --watch",
+    "lint": "oxlint src/",
+    "fmt": "oxfmt src/",
+    "check": "bun run lint && tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "oxlint": "latest",
+    "chrome-types": "^0.1.327"
+  }
+}

@@ -1,0 +1,1 @@
+export const INJECTED_CALENDAR_ID = "CUSTOMXX-APPL-REMD-0001-AssessmentsXX";

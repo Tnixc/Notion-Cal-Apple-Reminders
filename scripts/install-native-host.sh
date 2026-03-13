@@ -4,9 +4,9 @@ set -eou pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-HOST_DIR="$PROJECT_DIR/native-host"
+HOST_DIR="$PROJECT_DIR/native"
 BUILD_DIR="$HOST_DIR/dist"
-BINARY_NAME="native-host"
+BINARY_NAME="native"
 BINARY_PATH="$BUILD_DIR/$BINARY_NAME"
 HOST_NAME="com.notion_cal.apple_reminders"
 
@@ -39,5 +39,5 @@ echo "  Manifest: $CHROME_NMH_DIR/$HOST_NAME.json"
 if [ "$EXTENSION_ID" = "PLACEHOLDER" ]; then
   echo ""
   echo "  ⚠ Extension ID is PLACEHOLDER. Re-run with your extension ID:"
-  echo "    ./scripts/install-native-host.sh <extension-id>"
+  echo "    ./scripts/install-native.sh <extension-id>"
 fi

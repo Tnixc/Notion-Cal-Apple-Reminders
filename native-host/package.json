@@ -1,8 +1,0 @@
-{
-  "name": "notion-cal-native-host",
-  "version": "0.1.0",
-  "type": "module",
-  "scripts": {
-    "build": "bun build src/index.ts --compile --outfile dist/native-host"
-  }
-}

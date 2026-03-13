@@ -52,15 +52,6 @@ export interface CollectionProperties {
       groups: StatusGroup[];
     };
   };
-  Priority: {
-    id: string;
-    name: string;
-    description: string | null;
-    type: "select";
-    select: {
-      options: SelectOption[];
-    };
-  };
   Name: {
     id: string;
     name: string;

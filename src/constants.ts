@@ -5,8 +5,6 @@ export const STATUS_IDS = {
   complete: "f90b1d98-fb26-4d70-8f8e-446a7a79652c",
 } as const;
 
-export const PRIORITY_ID = "9f9f21b9-9f4a-472d-9884-aebfd82a0c30";
-
 /** Deterministic calendar ID from a reminder list name. */
 export function calendarIdForList(listName: string): string {
   let hash = 0;

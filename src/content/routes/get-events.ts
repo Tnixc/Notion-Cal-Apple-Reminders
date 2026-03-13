@@ -1,7 +1,7 @@
 import { route, originalFetch } from "@/content/router";
 import type { CalendarQueryResult, NotionEvent } from "@/types/notion-calendar";
 import type { AppleReminder } from "@/types/apple-reminders";
-import { calendarIdForList, STATUS_IDS, PRIORITY_ID } from "@/constants";
+import { calendarIdForList, STATUS_IDS } from "@/constants";
 import { fetchReminders } from "@/content/reminders";
 
 interface GetEventsQuery {
@@ -67,15 +67,6 @@ function toNotionEvent(
             id: reminder.isCompleted ? STATUS_IDS.complete : STATUS_IDS.incomplete,
             name: reminder.isCompleted ? "Complete" : "Incomplete",
             color: "default",
-          },
-        },
-        Priority: {
-          id: "tbMz",
-          type: "select" as const,
-          select: {
-            id: PRIORITY_ID,
-            name: String(reminder.priority),
-            color: "green",
           },
         },
         Name: {

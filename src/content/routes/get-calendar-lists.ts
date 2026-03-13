@@ -1,6 +1,6 @@
 import { route, originalFetch } from "@/content/router";
 import type { CalendarListResult, NotionCalendar } from "@/types/calendar-list";
-import { calendarIdForList, STATUS_IDS, PRIORITY_ID } from "@/constants";
+import { calendarIdForList, STATUS_IDS } from "@/constants";
 import { fetchReminders } from "@/content/reminders";
 
 interface CalendarListQuery {
@@ -90,22 +90,6 @@ function makeInjectedCalendar(accountId: string, listName: string): NotionCalend
                 name: "Complete",
                 color: "green",
                 option_ids: [STATUS_IDS.complete],
-              },
-            ],
-          },
-        },
-        Priority: {
-          id: "tbMz",
-          name: "Priority",
-          description: null,
-          type: "select",
-          select: {
-            options: [
-              {
-                id: PRIORITY_ID,
-                name: "0",
-                color: "green",
-                description: null,
               },
             ],
           },

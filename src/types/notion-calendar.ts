@@ -33,11 +33,6 @@ export interface NotionPage {
       type: "status";
       status: { id: string; name: string; color: string };
     };
-    Priority: {
-      id: string;
-      type: "select";
-      select: { id: string; name: string; color: string };
-    };
     Name: {
       id: string;
       type: "title";

@@ -4,6 +4,5 @@ export interface AppleReminder {
   dueDate?: string;
   isCompleted: boolean;
   list: string;
-  priority: number;
   notes?: string;
 }

@@ -1,6 +1,5 @@
 import { route, originalFetch } from "@/content/router";
 import type { CalendarListResult, NotionCalendar } from "@/types/calendar-list";
-import { setNotionCalendar } from "@/content/store";
 import { INJECTED_CALENDAR_ID } from "@/constants";
 
 interface CalendarListQuery {
@@ -37,6 +36,8 @@ function makeInjectedCalendar(accountId: string): NotionCalendar {
     notionViewType: "table",
     notionUrl: "",
     notionParentId: "",
+    backgroundColor: "#9fc6e7",
+    foregroundColor: "#000000",
     notionCollection: {
       id: "injected-collection",
       properties: {
@@ -150,14 +151,6 @@ route("/v2/getCalendarLists", async (url, request) => {
 
   for (const result of data) {
     if (!isNotionAccount(result)) continue;
-
-    for (const calendar of result.calendars) {
-      const notionCal = calendar as NotionCalendar;
-      setNotionCalendar(notionCal.id, notionCal);
-      console.log(
-        `[notion-cal] Captured notion calendar: "${notionCal.summary}" (${notionCal.id})`,
-      );
-    }
 
     const injected = makeInjectedCalendar(result.accountId);
     result.calendars.push(injected);

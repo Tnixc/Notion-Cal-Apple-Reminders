@@ -19,44 +19,26 @@ function hasNotionQuery(body: unknown): boolean {
   return Array.isArray(b.queries) && b.queries.some((q) => q.provider === "notion");
 }
 
-function splitQueries(body: GetEventsBody): {
-  injected: GetEventsQuery[];
-  real: GetEventsQuery[];
-} {
-  const injected: GetEventsQuery[] = [];
-  const real: GetEventsQuery[] = [];
-  for (const q of body.queries) {
-    if (q.calendarId === INJECTED_CALENDAR_ID) {
-      injected.push(q);
-    } else {
-      real.push(q);
-    }
-  }
-  return { injected, real };
-}
-
 route("/v2/getEvents", async (url, request) => {
   if (!hasNotionQuery(request.body)) return null;
 
   const body = request.body as GetEventsBody;
-  const { injected, real } = splitQueries(body);
 
-  // Forward non-injected queries to Notion
-  let realResults: CalendarQueryResult[] = [];
-  if (real.length > 0) {
-    const response = await originalFetch(url.href, {
-      method: request.method,
-      headers: request.headers,
-      body: JSON.stringify({ queries: real }),
-    });
-    realResults = await response.json();
-  }
+  // Forward the full request to Notion (it ignores unknown calendarIds)
+  const response = await originalFetch(url.href, {
+    method: request.method,
+    headers: request.headers,
+    body: JSON.stringify(request.body),
+  });
 
-  // Handle injected calendar queries
-  for (const query of injected) {
-    console.log(`[notion-cal] Serving injected calendar events for ${INJECTED_CALENDAR_ID}`);
-    realResults.push({
-      accountId: query.accountId,
+  const data: CalendarQueryResult[] = await response.json();
+
+  // If the injected calendar was queried, append mock events
+  const injectedQuery = body.queries.find((q) => q.calendarId === INJECTED_CALENDAR_ID);
+  if (injectedQuery) {
+    console.log(`[notion-cal] Appending mock events for ${INJECTED_CALENDAR_ID}`);
+    data.push({
+      accountId: injectedQuery.accountId,
       calendarId: INJECTED_CALENDAR_ID,
       events: [
         {
@@ -64,8 +46,81 @@ route("/v2/getEvents", async (url, request) => {
           kind: "calendar#event",
           organizer: { self: true },
           sequence: 1,
+          id: "injected-mock-event-0002",
+          accountId: injectedQuery.accountId,
+          calendarId: INJECTED_CALENDAR_ID,
+          summary: "Mock Apple Reminder 2",
+          start: {
+            dateTime: "2026-03-14T10:00:00-03:00",
+            timeZone: "America/Toronto",
+          },
+          end: {
+            dateTime: "2026-03-14T10:00:00-03:00",
+            timeZone: "America/Toronto",
+          },
+          created: "2026-03-13T00:00:00.000Z",
+          updated: "2026-03-13T00:00:00.000Z",
+          notionUrl: "",
+          notionTitleHasRichText: false,
+          notionPage: {
+            properties: {
+              Date: {
+                id: "I%5Bbb",
+                type: "date",
+                date: {
+                  start: "2026-03-14T14:00:00.000+00:00",
+                  end: null,
+                  time_zone: null,
+                },
+              },
+              Status: {
+                id: "Mx%60b",
+                type: "status",
+                status: {
+                  id: "f90b1d98-fb26-4d70-8f8e-446a7a79652c",
+                  name: "Complete",
+                  color: "default",
+                },
+              },
+              Priority: {
+                id: "tbMz",
+                type: "select",
+                select: {
+                  id: "9f9f21b9-9f4a-472d-9884-aebfd82a0c30",
+                  name: "0",
+                  color: "green",
+                },
+              },
+              Name: {
+                id: "title",
+                type: "title",
+                title: [
+                  {
+                    type: "text",
+                    text: { content: "Mock Apple Reminder2", link: null },
+                    annotations: {
+                      bold: false,
+                      italic: false,
+                      strikethrough: false,
+                      underline: false,
+                      code: false,
+                      color: "default",
+                    },
+                    plain_text: "Mock Apple Reminder2",
+                    href: null,
+                  },
+                ],
+              },
+            },
+          },
+        },
+        {
+          provider: "notion",
+          kind: "calendar#event",
+          organizer: { self: true },
+          sequence: 1,
           id: "injected-mock-event-0001",
-          accountId: query.accountId,
+          accountId: injectedQuery.accountId,
           calendarId: INJECTED_CALENDAR_ID,
           summary: "Mock Apple Reminder",
           start: {
@@ -136,7 +191,7 @@ route("/v2/getEvents", async (url, request) => {
     });
   }
 
-  return new Response(JSON.stringify(realResults), {
+  return new Response(JSON.stringify(data), {
     status: 200,
     headers: { "Content-Type": "application/json" },
   });

@@ -136,7 +136,9 @@ route("/v2/getEvents", async (url, request) => {
       data.push({
         accountId: query.accountId,
         calendarId: calId,
-        events: listReminders.map((r) => toNotionEvent(r, query.accountId, calId)),
+        events: listReminders
+          .filter((r) => r.dueDate)
+          .map((r) => toNotionEvent(r, query.accountId, calId)),
       });
     }
   }
